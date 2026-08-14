@@ -21,3 +21,29 @@ jobs:
 
             - run: python -m pytest tests/ -v
 
+    udgiv:
+        name: Byg og udgiv image
+        runs-on: ubuntu-latest
+        needs: test
+        permissions:
+            contents: read
+            packages: write
+        steps:
+             - uses: actions/checkout@v4
+
+             - name: Bestem image-navn
+               id: navn
+               run: echo "image=ghcr.io/$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
+
+             - name: Byg image
+               run: docker build -t ${{ steps.navn.outputs.image }}:latest .
+
+             - name: Log ind i registry 
+               uses: docker/login-action@v3
+               with: 
+                registry: ghcr.io
+                username: ${{ github.actor }}
+                password: ${{ secrets.GITHUB_TOKEN }}
+
+             - name: Push image
+               run: docker push ${{ steps.navn.outputs.image }}:latest
